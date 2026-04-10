@@ -102,13 +102,51 @@ export default function UploadCard({ preview, onFileChange, onAnalyze, loading }
       ) : (
         /* ── Preview State ── */
         <div className="flex flex-col items-center gap-6">
-          <div className="relative w-full max-w-[500px]">
+
+          {/* Image + scan overlay */}
+          <div className="relative w-full max-w-[500px] rounded-[16px] overflow-hidden">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={preview}
               alt="Plant preview"
               className="w-full max-h-[320px] object-contain rounded-[16px]"
             />
+
+            {/* Scanning overlay — only while loading */}
+            {loading && (
+              <div className="absolute inset-0 rounded-[16px] pointer-events-none overflow-hidden">
+
+                {/* Grid */}
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    backgroundImage: `
+                      repeating-linear-gradient(0deg, transparent, transparent 28px, rgba(180,255,150,0.07) 28px, rgba(180,255,150,0.07) 29px),
+                      repeating-linear-gradient(90deg, transparent, transparent 28px, rgba(180,255,150,0.07) 28px, rgba(180,255,150,0.07) 29px)
+                    `,
+                  }}
+                />
+
+                {/* Corner brackets */}
+                <div className="absolute top-3 left-3 w-6 h-6 border-t-2 border-l-2 border-[#d0ff93]/60 rounded-tl-[4px]" />
+                <div className="absolute top-3 right-3 w-6 h-6 border-t-2 border-r-2 border-[#d0ff93]/60 rounded-tr-[4px]" />
+                <div className="absolute bottom-3 left-3 w-6 h-6 border-b-2 border-l-2 border-[#d0ff93]/60 rounded-bl-[4px]" />
+                <div className="absolute bottom-3 right-3 w-6 h-6 border-b-2 border-r-2 border-[#d0ff93]/60 rounded-br-[4px]" />
+
+                {/* Scanning line */}
+                <div
+                  className="absolute left-0 right-0 h-[2px] pointer-events-none"
+                  style={{
+                    background: "linear-gradient(90deg, transparent 0%, rgba(208,255,147,0.15) 10%, rgba(208,255,147,0.7) 50%, rgba(208,255,147,0.15) 90%, transparent 100%)",
+                    boxShadow: "0 0 8px 2px rgba(208,255,147,0.35)",
+                    animation: "scan 2.2s ease-in-out infinite",
+                  }}
+                />
+
+                {/* Subtle dark vignette */}
+                <div className="absolute inset-0 rounded-[16px]" style={{ background: "radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.25) 100%)" }} />
+              </div>
+            )}
           </div>
 
           <button
@@ -126,12 +164,14 @@ export default function UploadCard({ preview, onFileChange, onAnalyze, loading }
             )}
           </button>
 
-          <button
-            onClick={openPicker}
-            className="text-white/60 font-dm text-sm underline underline-offset-2 hover:text-white/90 transition-colors"
-          >
-            Choose a different image
-          </button>
+          {!loading && (
+            <button
+              onClick={openPicker}
+              className="text-white/60 font-dm text-sm underline underline-offset-2 hover:text-white/90 transition-colors"
+            >
+              Choose a different image
+            </button>
+          )}
         </div>
       )}
     </div>
