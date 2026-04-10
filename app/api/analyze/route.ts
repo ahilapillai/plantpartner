@@ -71,15 +71,16 @@ async function identifyPlant(image: string) {
 }
 
 // ── Weather ───────────────────────────────────────────────────────────────────
-async function getBangaloreWeather() {
+async function getWeather(city: string) {
   const fallback = { temp: 28, humidity: 65, description: "Partly cloudy" };
   try {
-    const res = await fetch("https://wttr.in/Bangalore?format=j1", { headers: { "User-Agent": "loveplants.ai/1.0" } });
+    const encoded = encodeURIComponent(city);
+    const res = await fetch(`https://wttr.in/${encoded}?format=j1`, { headers: { "User-Agent": "loveplants.ai/1.0" } });
     if (!res.ok) return fallback;
     const c = (await res.json()).current_condition?.[0];
     if (!c) return fallback;
     const weather = { temp: parseInt(c.temp_C ?? "28", 10), humidity: parseInt(c.humidity ?? "65", 10), description: c.weatherDesc?.[0]?.value ?? "Partly cloudy" };
-    console.log(`[Weather] ${weather.temp}°C ${weather.humidity}% — ${weather.description}`);
+    console.log(`[Weather] ${city}: ${weather.temp}°C ${weather.humidity}% — ${weather.description}`);
     return weather;
   } catch (err) {
     console.error("[Weather]", err);
@@ -91,7 +92,8 @@ async function getBangaloreWeather() {
 async function synthesizeDiagnosis(
   image: string,
   plant: Awaited<ReturnType<typeof identifyPlant>>,
-  weather: Awaited<ReturnType<typeof getBangaloreWeather>>
+  weather: Awaited<ReturnType<typeof getWeather>>,
+  locationLabel: string
 ) {
   const plantCtx = plant.confidence > 0
     ? `Plant: "${plant.plantName}" (${plant.confidence}% confidence).`
@@ -110,7 +112,7 @@ Look carefully for: overly perfect or identical leaves, unnatural shine or gloss
 
 ${plantCtx}
 ${healthCtx}
-Bangalore weather today: ${weather.temp}°C, ${weather.humidity}% humidity, ${weather.description}.
+Weather in ${locationLabel} today: ${weather.temp}°C, ${weather.humidity}% humidity, ${weather.description}.
 
 Return ONLY this JSON (no markdown, no extra text):
 {
@@ -120,7 +122,7 @@ Return ONLY this JSON (no markdown, no extra text):
   "issue": <one short issue name, or "Looking Great!" if healthy or artificial>,
   "explanation": <1-2 friendly sentences — if artificial say something playful like "This beauty doesn't need water or sunlight — it's rocking the low-maintenance lifestyle!">,
   "solutions": <[] if artificial, otherwise exactly 4 short actionable steps>,
-  "location_tip": <empty string if artificial, otherwise one tip using today's ${weather.temp}°C or ${weather.humidity}% humidity>
+  "location_tip": <empty string if artificial, otherwise one tip referencing ${locationLabel} and using today's ${weather.temp}°C or ${weather.humidity}% humidity>
 }`;
 
   const openai = getOpenAI();
@@ -152,7 +154,7 @@ Return ONLY this JSON (no markdown, no extra text):
 // ── POST /api/analyze ─────────────────────────────────────────────────────────
 export async function POST(req: Request) {
   // 1. Read JSON body
-  let body: { image?: string };
+  let body: { image?: string; location?: { city: string; region: string; country: string } | null };
   try {
     body = await req.json();
   } catch {
@@ -160,6 +162,10 @@ export async function POST(req: Request) {
   }
 
   const image = body.image ?? "";
+  const loc = body.location;
+  const city = loc?.city ?? "your city";
+  const locationLabel = loc ? `${loc.city}, ${loc.region}, ${loc.country}` : "your area";
+  console.log("[Route] location:", locationLabel);
 
   // 2. Validate image
   console.log("[Route] image length:", image.length, "| prefix:", image.slice(0, 60));
@@ -167,16 +173,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: false, error: "No valid base64 image provided" }, { status: 400 });
   }
 
-  // 3. Plant.id + weather in parallel
+  // 3. Plant.id + weather in parallel (use detected city for weather)
   const [plant, weather] = await Promise.all([
     identifyPlant(image),
-    getBangaloreWeather(),
+    getWeather(city),
   ]);
 
   // 4. OpenAI vision diagnosis — let errors surface naturally, no silent swallowing
   let diagnosis: Record<string, unknown>;
   try {
-    diagnosis = await synthesizeDiagnosis(image, plant, weather);
+    diagnosis = await synthesizeDiagnosis(image, plant, weather, locationLabel);
   } catch (err) {
     console.error("[Route] OpenAI failed:", err);
     return NextResponse.json({ success: false, error: String(err) }, { status: 500 });

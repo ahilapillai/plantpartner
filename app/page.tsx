@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Logo from "@/components/Logo";
 import Vine from "@/components/Vine";
@@ -12,12 +12,32 @@ import Footer from "@/components/Footer";
 import ResultSection from "@/components/ResultSection";
 import { AnalysisResult } from "@/types";
 
+interface UserLocation {
+  city: string;
+  region: string;
+  country: string;
+}
+
 export default function Home() {
   const [preview, setPreview] = useState<string | null>(null);  // base64 data URI
   const [base64Image, setBase64Image] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [location, setLocation] = useState<UserLocation | null>(null);
   const resultRef = useRef<HTMLDivElement>(null);
+
+  // Silently detect location via IP on load
+  useEffect(() => {
+    fetch("https://ipapi.co/json/")
+      .then(res => res.json())
+      .then(data => {
+        if (data.city) {
+          setLocation({ city: data.city, region: data.region, country: data.country });
+          console.log("[Location] detected:", data.city, data.region);
+        }
+      })
+      .catch(() => setLocation(null));
+  }, []);
 
   // UploadCard passes the base64 data URI directly
   const handleFileChange = (base64: string) => {
@@ -34,7 +54,7 @@ export default function Home() {
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: base64Image }),
+        body: JSON.stringify({ image: base64Image, location }),
       });
       const json = await res.json();
       console.log("[Page] API response:", json);

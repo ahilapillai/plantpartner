@@ -173,7 +173,7 @@ export default function ResultSection({ loading, result }: Props) {
                 <span className="text-[20px] flex-shrink-0 mt-0.5">🌤️</span>
                 <div>
                   <p className="font-dm font-medium text-[11px] tracking-[0.15em] uppercase text-[#d0ff93] mb-1">
-                    Bangalore weather tip
+                    Based on conditions in your area
                   </p>
                   <p className="font-dm font-light text-[14px] md:text-[15px] text-white/75 leading-relaxed">
                     {result.location_tip}
