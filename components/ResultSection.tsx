@@ -55,15 +55,21 @@ export default function ResultSection({ loading, result }: Props) {
       {/* ── Main diagnosis card — same style as upload box ── */}
       <div className={cardClass} style={cardStyle}>
 
-        {/* Plant name — shown only if confidence >= 60, otherwise soft fallback */}
+        {/* Plant name — confidence-gated display */}
         <div className="flex flex-col items-center gap-2 mb-10">
-          {result.confidence !== undefined && result.confidence >= 60 ? (
+          {result.confidence !== undefined && result.confidence >= 40 ? (
             <>
               <h2 className="font-playfair text-[26px] md:text-[36px] font-normal text-white text-center leading-tight">
-                {result.plant_name}
+                {result.confidence >= 70
+                  ? result.plant_name
+                  : `Possibly ${result.plant_name}`}
               </h2>
-              <span className="inline-flex items-center gap-1.5 font-dm text-[12px] font-medium tracking-wide px-3 py-1 rounded-full bg-[#d0ff93]/20 text-[#d0ff93]">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#d0ff93]" />
+              <span className={`inline-flex items-center gap-1.5 font-dm text-[12px] font-medium tracking-wide px-3 py-1 rounded-full ${
+                result.confidence >= 70
+                  ? "bg-[#d0ff93]/20 text-[#d0ff93]"
+                  : "bg-amber-300/20 text-amber-300"
+              }`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${result.confidence >= 70 ? "bg-[#d0ff93]" : "bg-amber-300"}`} />
                 {result.confidence}% confidence
               </span>
             </>
@@ -73,7 +79,7 @@ export default function ResultSection({ loading, result }: Props) {
                 Plant not confidently identified
               </h2>
               <p className="font-dm font-light text-[13px] text-white/45 text-center">
-                Try a clearer image for better accuracy
+                Low confidence analysis — try a clearer image
               </p>
             </>
           )}
