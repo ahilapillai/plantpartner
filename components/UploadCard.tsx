@@ -16,15 +16,32 @@ export default function UploadCard({ preview, onFileChange, onAnalyze, loading }
 
   const openPicker = () => inputRef.current?.click();
 
-  /** Convert a File to a base64 data URI via FileReader, then call onFileChange */
+  /**
+   * Resize + compress image to max 1024px and JPEG 0.82 quality,
+   * keeping payload well under Vercel's 4.5 MB body limit.
+   */
   const readAsBase64 = (file: File) => {
     if (!file.type.startsWith("image/")) return;
 
     const reader = new FileReader();
     reader.onloadend = () => {
-      const base64 = reader.result as string;
-      console.log("[UploadCard] base64 preview:", base64.slice(0, 60));
-      onFileChange(base64);
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 1024;
+        let { width, height } = img;
+        if (width > MAX || height > MAX) {
+          if (width > height) { height = Math.round((height * MAX) / width); width = MAX; }
+          else { width = Math.round((width * MAX) / height); height = MAX; }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext("2d")!.drawImage(img, 0, 0, width, height);
+        const compressed = canvas.toDataURL("image/jpeg", 0.82);
+        console.log("[UploadCard] compressed size:", compressed.length);
+        onFileChange(compressed);
+      };
+      img.src = reader.result as string;
     };
     reader.readAsDataURL(file);
   };
