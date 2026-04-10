@@ -128,7 +128,7 @@ Look at the plant photo and return ONLY this JSON (no markdown, no extra text):
         role: "user",
         content: [
           { type: "input_text", text: prompt },
-          { type: "input_image", image_url: image },
+          { type: "input_image", image_url: image, detail: "auto" },
         ],
       },
     ],
