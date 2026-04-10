@@ -105,18 +105,22 @@ async function synthesizeDiagnosis(
 
   const prompt = `You are a warm, friendly plant care expert.
 
+FIRST — determine if this plant is real, artificial (plastic/fabric/silk), or unsure.
+Look carefully for: overly perfect or identical leaves, unnatural shine or gloss, plastic texture, repeated patterns, no soil or roots visible, no natural imperfections.
+
 ${plantCtx}
 ${healthCtx}
 Bangalore weather today: ${weather.temp}°C, ${weather.humidity}% humidity, ${weather.description}.
 
-Look at the plant photo and return ONLY this JSON (no markdown, no extra text):
+Return ONLY this JSON (no markdown, no extra text):
 {
-  "health_score": <0-100>,
-  "health_status": <"healthy" | "disease" | "care_issue">,
-  "issue": <one short issue name, or "Looking Great!" if healthy>,
-  "explanation": <1-2 friendly sentences about what you see>,
-  "solutions": [<exactly 4 short actionable steps>],
-  "location_tip": <one tip using today's ${weather.temp}°C or ${weather.humidity}% humidity>
+  "plant_type": <"real" | "artificial" | "unsure">,
+  "health_score": <0-100, set to 100 if artificial>,
+  "health_status": <"healthy" | "disease" | "care_issue", set "healthy" if artificial>,
+  "issue": <one short issue name, or "Looking Great!" if healthy or artificial>,
+  "explanation": <1-2 friendly sentences — if artificial say something playful like "This beauty doesn't need water or sunlight — it's rocking the low-maintenance lifestyle!">,
+  "solutions": <[] if artificial, otherwise exactly 4 short actionable steps>,
+  "location_tip": <empty string if artificial, otherwise one tip using today's ${weather.temp}°C or ${weather.humidity}% humidity>
 }`;
 
   const openai = getOpenAI();
@@ -179,9 +183,11 @@ export async function POST(req: Request) {
   }
 
   // 5. Return structured result
+  const plantType = (diagnosis.plant_type as string) ?? "real";
   return NextResponse.json({
     success: true,
     result: {
+      plant_type:    plantType,
       plant_name:    plant.plantName,
       confidence:    plant.confidence > 0 ? plant.confidence : undefined,
       health_status: (diagnosis.health_status  as string) ?? "care_issue",

@@ -7,8 +7,10 @@ export interface Product {
 }
 
 export type HealthStatus = "healthy" | "disease" | "care_issue";
+export type PlantType = "real" | "artificial" | "unsure";
 
 export interface AnalysisResult {
+  plant_type: PlantType;        // real / artificial / unsure
   plant_name: string;
   confidence?: number;          // 0–100 from Plant.id
   health_status: HealthStatus;

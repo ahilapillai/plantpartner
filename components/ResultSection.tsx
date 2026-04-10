@@ -1,4 +1,4 @@
-import { AnalysisResult, HealthStatus } from "@/types";
+import { AnalysisResult, HealthStatus, PlantType } from "@/types";
 import ScoreDisplay from "./ScoreDisplay";
 
 interface Props {
@@ -46,6 +46,30 @@ export default function ResultSection({ loading, result }: Props) {
 
   if (!result) return null;
 
+  // ── Artificial plant — special card ───────────────────────────────────────
+  if (result.plant_type === "artificial") {
+    return (
+      <section className="pb-16">
+        <div className={cardClass} style={cardStyle}>
+          <div className="flex flex-col items-center gap-4 py-4 text-center">
+            <span className="text-[56px]">🌿</span>
+            <h2 className="font-playfair text-[26px] md:text-[34px] font-normal text-white leading-tight">
+              This looks like a plastic plant
+            </h2>
+            <p className="font-dm font-light text-[16px] md:text-[18px] text-white/75 max-w-sm">
+              No watering needed — you&apos;re doing perfect already 😄
+            </p>
+            {result.explanation && (
+              <p className="font-dm font-light text-[14px] text-white/50 max-w-md mt-2">
+                {result.explanation}
+              </p>
+            )}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   const status = STATUS_CONFIG[result.health_status] ?? STATUS_CONFIG.care_issue;
 
   // ── Result state ───────────────────────────────────────────────────────────
@@ -57,7 +81,16 @@ export default function ResultSection({ loading, result }: Props) {
 
         {/* Plant name — confidence-gated display */}
         <div className="flex flex-col items-center gap-2 mb-10">
-          {result.confidence !== undefined && result.confidence >= 40 ? (
+          {result.plant_type === "unsure" ? (
+            <>
+              <h2 className="font-playfair text-[24px] md:text-[32px] font-normal text-white/75 text-center leading-tight">
+                We couldn&apos;t confidently identify this plant
+              </h2>
+              <p className="font-dm font-light text-[13px] text-white/45 text-center">
+                Analysis may be limited — try a clearer, closer photo
+              </p>
+            </>
+          ) : result.confidence !== undefined && result.confidence >= 40 ? (
             <>
               <h2 className="font-playfair text-[26px] md:text-[36px] font-normal text-white text-center leading-tight">
                 {result.confidence >= 70
