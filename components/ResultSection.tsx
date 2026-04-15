@@ -8,6 +8,36 @@ interface Props {
   result: AnalysisResult | null;
 }
 
+// ── Google Calendar deep-link builder ────────────────────────────────────────
+function buildCalendarUrl(plantName: string, daysFromNow: number): string {
+  const date = new Date();
+  date.setDate(date.getDate() + daysFromNow);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const ymd = `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}`;
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: `💧 Water your ${plantName || "plant"}`,
+    dates: `${ymd}/${ymd}`,
+    details: `Your plant care reminder from loveplants.ai.\n\nTip: Check the soil moisture before watering — if the top inch feels damp, wait another day.`,
+  });
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
+function GoogleCalendarButton({ plantName, daysFromNow }: { plantName: string; daysFromNow: number }) {
+  const url = buildCalendarUrl(plantName, daysFromNow);
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-2 font-dm font-semibold text-[15px] px-5 py-3 rounded-full self-start transition-opacity hover:opacity-85 active:scale-95"
+      style={{ backgroundColor: "rgba(255,235,147,0.7)", color: "#644c21" }}
+    >
+      📅 Set watering reminder
+    </a>
+  );
+}
+
 // ── Status badge config ───────────────────────────────────────────────────────
 const STATUS_CONFIG: Record<HealthStatus, { label: string; bg: string; text: string }> = {
   healthy:    { label: "HEALTHY",    bg: "rgba(208,255,147,0.7)", text: "#2a5c1f" },
@@ -177,15 +207,13 @@ export default function ResultSection({ loading, result }: Props) {
               </p>
             )}
 
-            {/* Watering interval */}
-            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-              <div
-                className="inline-flex items-center gap-2 font-dm font-semibold text-[15px] px-5 py-3 rounded-full self-start"
-                style={{ backgroundColor: "rgba(255,235,147,0.7)", color: "#644c21" }}
-              >
-                💧 Next watering in {result.watering_days} day{result.watering_days !== 1 ? "s" : ""}
-              </div>
-            </div>
+            {/* Google Calendar reminder button */}
+            {result.watering_days && (
+              <GoogleCalendarButton
+                plantName={result.plant_name}
+                daysFromNow={result.watering_days}
+              />
+            )}
 
             {/* Disclaimer */}
             <p className="font-dm font-light text-[13px] text-white/45 mt-4 leading-relaxed">
