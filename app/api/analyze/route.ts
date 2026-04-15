@@ -1,5 +1,25 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
+import type { PlantCategory } from "@/types";
+
+// ── Watering logic ────────────────────────────────────────────────────────────
+const BASE_WATERING_DAYS: Record<PlantCategory, number> = {
+  tropical:  7,
+  leafy:     5,
+  succulent: 14,
+  herb:      4,
+  flowering: 6,
+  unknown:   7,
+};
+
+function computeWateringDays(category: PlantCategory, temp: number, humidity: number): number {
+  let days = BASE_WATERING_DAYS[category] ?? 7;
+  if (temp > 30)    days -= 1;  // hot → dry out faster
+  if (temp < 15)    days += 2;  // cool → slower evaporation
+  if (humidity > 70) days += 1; // humid → retain moisture longer
+  if (humidity < 40) days -= 1; // dry air → water sooner
+  return Math.max(1, Math.min(days, 21));
+}
 
 function getOpenAI() {
   if (!process.env.OPENAI_API_KEY) {
@@ -117,6 +137,7 @@ Weather in ${locationLabel} today: ${weather.temp}°C, ${weather.humidity}% humi
 Return ONLY this JSON (no markdown, no extra text):
 {
   "plant_type": <"real" | "artificial" | "unsure">,
+  "plant_category": <"tropical" | "leafy" | "succulent" | "herb" | "flowering" | "unknown" — set "unknown" if artificial>,
   "health_score": <0-100, set to 100 if artificial>,
   "health_status": <"healthy" | "disease" | "care_issue", set "healthy" if artificial>,
   "issue": <one short issue name, or "Looking Great!" if healthy or artificial>,
@@ -188,21 +209,27 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: false, error: String(err) }, { status: 500 });
   }
 
-  // 5. Return structured result
+  // 5. Compute watering days from category + weather
+  const plantCategory = ((diagnosis.plant_category as string) ?? "unknown") as PlantCategory;
+  const wateringDays = computeWateringDays(plantCategory, weather.temp, weather.humidity);
+
+  // 6. Return structured result
   const plantType = (diagnosis.plant_type as string) ?? "real";
   return NextResponse.json({
     success: true,
     result: {
-      plant_type:    plantType,
-      plant_name:    plant.plantName,
-      confidence:    plant.confidence > 0 ? plant.confidence : undefined,
-      health_status: (diagnosis.health_status  as string) ?? "care_issue",
-      issue:         (diagnosis.issue          as string) ?? "Unknown",
-      explanation:   (diagnosis.explanation    as string) ?? "",
-      solutions:     (diagnosis.solutions      as string[]) ?? [],
-      location_tip:  (diagnosis.location_tip   as string) ?? "",
-      score:         (diagnosis.health_score   as number) ?? 50,
-      products:      [],
+      plant_type:     plantType,
+      plant_category: plantCategory,
+      plant_name:     plant.plantName,
+      confidence:     plant.confidence > 0 ? plant.confidence : undefined,
+      health_status:  (diagnosis.health_status as string) ?? "care_issue",
+      issue:          (diagnosis.issue         as string) ?? "Unknown",
+      explanation:    (diagnosis.explanation   as string) ?? "",
+      solutions:      (diagnosis.solutions     as string[]) ?? [],
+      location_tip:   (diagnosis.location_tip  as string) ?? "",
+      score:          (diagnosis.health_score  as number) ?? 50,
+      watering_days:  wateringDays,
+      products:       [],
     },
   });
 }
