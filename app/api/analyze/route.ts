@@ -115,9 +115,11 @@ async function synthesizeDiagnosis(
   weather: Awaited<ReturnType<typeof getWeather>>,
   locationLabel: string
 ) {
-  const plantCtx = plant.confidence > 0
+  // Only share the plant name with OpenAI if confidence is high enough.
+  // If we hide the name here, OpenAI won't reference it in the explanation.
+  const plantCtx = plant.confidence >= 40
     ? `Plant: "${plant.plantName}" (${plant.confidence}% confidence).`
-    : "Plant could not be identified.";
+    : "Plant identification confidence is too low to determine the species. Do NOT reference any plant name in your response.";
 
   const healthCtx = plant.isHealthy
     ? "Plant.id: plant looks healthy."
