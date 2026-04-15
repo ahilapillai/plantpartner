@@ -72,7 +72,7 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-[#5e8557]">
+    <main className="min-h-screen bg-[#1F311C]">
 
       {/* ── Vine — fixed to viewport right edge, purely decorative ── */}
       <Vine />
