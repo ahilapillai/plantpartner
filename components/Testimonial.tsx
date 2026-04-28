@@ -5,7 +5,7 @@ import { IconQuote, IconChevronLeft, IconChevronRight } from "@tabler/icons-reac
 
 const testimonials = [
   {
-    quote: "Thanks to LeafLens, love the tips. Helped me save my betel plant — it's thriving now!",
+    quote: "Thanks to loveplants, love the tips. Helped me save my betel plant — it's thriving now!",
     author: "Sudha",
     location: "Chennai",
   },
